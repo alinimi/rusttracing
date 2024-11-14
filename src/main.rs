@@ -106,12 +106,23 @@ fn ray_color(objs: &Vec<HittableObject>, r: &Ray) -> glm::Vec3 {
     let unit_direction: glm::Vec3 = r.direction.normalize();
     let a = 0.5 * unit_direction.y + 0.5;
 
+    let mut closest_hit: Option<HitRecord> = None;
+
     for obj in objs {
         let hit_or_none = obj.hit(r, 0.0, 1.0);
         let Some(hit) = hit_or_none else {
             continue;
         };
-        return 0.5 * (hit.normal + glm::vec3(1.0, 1.0, 1.0));
+        if closest_hit.is_none() {
+            closest_hit = Some(hit);
+        } else if let Some(previous_closest) = &closest_hit {
+            if previous_closest.t > hit.t {
+                closest_hit = Some(hit);
+            }
+        }
+    }
+    if let Some(closest_final) = &closest_hit {
+        return 0.5 * (closest_final.normal + glm::vec3(1.0, 1.0, 1.0));
     }
     glm::Vec3::new(0.5, 0.7, 1.0) * a + (1.0 - a) * glm::Vec3::new(1.0, 1.0, 1.0)
 }
@@ -148,12 +159,12 @@ fn main() {
 
     let objects: Vec<HittableObject> = vec![
         HittableObject::SphereObject(Sphere {
-            center: glm::vec3(-0.2, 0.0, -0.5),
+            center: glm::vec3(-0.0, 0.0, -1.0),
             radius: 0.2,
         }),
         HittableObject::SphereObject(Sphere {
-            center: glm::vec3(-0.5, 0.0, -0.5),
-            radius: 0.2,
+            center: glm::vec3(-0.4, 0.0, -1.0),
+            radius: 0.4,
         }),
     ];
 
