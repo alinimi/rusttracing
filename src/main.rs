@@ -1,4 +1,5 @@
 extern crate nalgebra_glm as glm;
+use core::f32::INFINITY;
 
 fn output_file(data: Vec<u8>, width: u32, height: u32) {
     use std::fs::File;
@@ -105,42 +106,59 @@ impl Hittable for Sphere {
 
 enum HittableObject {
     SphereObject(Sphere),
+    HittableListObject(HittableList),
 }
 
 impl Hittable for HittableObject {
     fn hit(&self, r: &Ray, tmin: f32, tmax: f32) -> Option<HitRecord> {
         match self {
             Self::SphereObject(sphere) => sphere.hit(r, tmin, tmax),
+            Self::HittableListObject(hittable_list) => hittable_list.hit(r, tmin, tmax),
         }
     }
 }
 
-fn ray_color(objs: &Vec<HittableObject>, r: &Ray) -> glm::Vec3 {
+fn ray_color(obj: &HittableObject, r: &Ray) -> glm::Vec3 {
     let unit_direction: glm::Vec3 = r.direction.normalize();
-    let a = 0.5 * unit_direction.y + 0.5;
 
-    let mut closest_hit: Option<HitRecord> = None;
+    let closest_hit: Option<HitRecord> = obj.hit(r, 0.0, INFINITY);
 
-    for obj in objs {
-        let hit_or_none = obj.hit(r, 0.0, 1.0);
-        let Some(hit) = hit_or_none else {
-            continue;
-        };
-        if closest_hit.is_none() {
-            closest_hit = Some(hit);
-        } else if let Some(previous_closest) = &closest_hit {
-            if previous_closest.t > hit.t {
-                closest_hit = Some(hit);
-            }
-        }
-    }
     if let Some(closest_final) = &closest_hit {
         return 0.5 * (closest_final.normal + glm::vec3(1.0, 1.0, 1.0));
     }
+    let a = 0.5 * unit_direction.y + 0.5;
     glm::Vec3::new(0.5, 0.7, 1.0) * a + (1.0 - a) * glm::Vec3::new(1.0, 1.0, 1.0)
 }
 
+struct HittableList {
+    objects: Vec<HittableObject>,
+}
 
+impl HittableList {
+    fn add(&mut self, obj: HittableObject) {
+        self.objects.push(obj);
+    }
+}
+
+impl Hittable for HittableList {
+    fn hit(&self, r: &Ray, tmin: f32, mut tmax: f32) -> Option<HitRecord> {
+        let mut closest_hit: Option<HitRecord> = None;
+
+        for obj in &self.objects {
+            tmax = if let Some(temp_closest) = &closest_hit {
+                temp_closest.t
+            } else {
+                tmax
+            };
+            let hit_or_none = obj.hit(r, tmin, tmax);
+            let Some(hit) = hit_or_none else {
+                continue;
+            };
+            closest_hit = Some(hit);
+        }
+        return closest_hit;
+    }
+}
 
 fn main() {
     let aspect_ratio: f32 = 16.0 / 9.0;
@@ -172,16 +190,18 @@ fn main() {
 
     let mut data: Vec<u8> = vec![0; (image_height * image_width * 4) as usize];
 
-    let objects: Vec<HittableObject> = vec![
-        HittableObject::SphereObject(Sphere {
-            center: glm::vec3(-0.0, 0.0, -1.0),
-            radius: 0.2,
-        }),
-        HittableObject::SphereObject(Sphere {
-            center: glm::vec3(-0.4, 0.0, -1.0),
-            radius: 0.4,
-        }),
-    ];
+    let world = HittableObject::HittableListObject(HittableList {
+        objects: vec![
+            HittableObject::SphereObject(Sphere {
+                center: glm::vec3(-0.0, 0.0, -1.0),
+                radius: 0.5,
+            }),
+            HittableObject::SphereObject(Sphere {
+                center: glm::vec3(0.0, -100.5, -1.0),
+                radius: 100.0,
+            }),
+        ],
+    });
 
     for i in 0..image_height {
         for j in 0..image_width {
@@ -194,7 +214,7 @@ fn main() {
 
             let _ = ray.at(0.2);
 
-            let pixel_color = ray_color(&objects, &ray);
+            let pixel_color = ray_color(&world, &ray);
             data[((i * image_width + j) * 4) as usize] = (pixel_color.x * 255.999) as u8;
             data[((i * image_width + j) * 4 + 1) as usize] = (pixel_color.y * 255.999) as u8;
             data[((i * image_width + j) * 4 + 2) as usize] = (pixel_color.z * 255.999) as u8;
