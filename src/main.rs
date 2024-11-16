@@ -64,7 +64,7 @@ impl HitRecord {
 }
 
 trait Hittable {
-    fn hit(&self, r: &Ray, tmin: f32, tmax: f32) -> Option<HitRecord>;
+    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord>;
 }
 
 struct Sphere {
@@ -73,7 +73,7 @@ struct Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, r: &Ray, tmin: f32, tmax: f32) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let oc: glm::Vec3 = self.center - r.origin;
         let a = glm::length2(&r.direction);
         let h = glm::dot(&r.direction, &oc);
@@ -87,17 +87,15 @@ impl Hittable for Sphere {
         let root1 = (h + f32::sqrt(discriminant)) / a;
 
         let t: f32;
-        if root0 > tmax {
-            return None;
-        } else if root0 < tmin {
-            if root1 > tmin && root1 < tmax {
-                t = root1;
-            } else {
-                return None;
-            }
-        } else {
+
+        if ray_t.surrounds(root0) {
             t = root0;
+        } else if ray_t.surrounds(root1) {
+            t = root1;
+        } else {
+            return None;
         }
+
         let point = r.at(t);
         let hit = HitRecord::new(point, t, (point - self.center).normalize(), r);
         Some(hit)
@@ -110,10 +108,10 @@ enum HittableObject {
 }
 
 impl Hittable for HittableObject {
-    fn hit(&self, r: &Ray, tmin: f32, tmax: f32) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
         match self {
-            Self::SphereObject(sphere) => sphere.hit(r, tmin, tmax),
-            Self::HittableListObject(hittable_list) => hittable_list.hit(r, tmin, tmax),
+            Self::SphereObject(sphere) => sphere.hit(r, ray_t),
+            Self::HittableListObject(hittable_list) => hittable_list.hit(r, ray_t),
         }
     }
 }
@@ -121,7 +119,13 @@ impl Hittable for HittableObject {
 fn ray_color(obj: &HittableObject, r: &Ray) -> glm::Vec3 {
     let unit_direction: glm::Vec3 = r.direction.normalize();
 
-    let closest_hit: Option<HitRecord> = obj.hit(r, 0.0, INFINITY);
+    let closest_hit: Option<HitRecord> = obj.hit(
+        r,
+        Interval {
+            min: 0.0,
+            max: INFINITY,
+        },
+    );
 
     if let Some(closest_final) = &closest_hit {
         return 0.5 * (closest_final.normal + glm::vec3(1.0, 1.0, 1.0));
@@ -140,9 +144,30 @@ impl HittableList {
     }
 }
 
+#[derive(Copy, Clone)]
+struct Interval {
+    min: f32,
+    max: f32,
+}
+
+impl Interval {
+    fn size(&self) -> f32 {
+        return self.max - self.min;
+    }
+
+    fn contains(&self, x: f32) -> bool {
+        return self.min <= x && x <= self.max;
+    }
+
+    fn surrounds(&self, x: f32) -> bool {
+        return self.min < x && x < self.max;
+    }
+}
+
 impl Hittable for HittableList {
-    fn hit(&self, r: &Ray, tmin: f32, mut tmax: f32) -> Option<HitRecord> {
+    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
         let mut closest_hit: Option<HitRecord> = None;
+        let mut tmax = ray_t.max;
 
         for obj in &self.objects {
             tmax = if let Some(temp_closest) = &closest_hit {
@@ -150,7 +175,13 @@ impl Hittable for HittableList {
             } else {
                 tmax
             };
-            let hit_or_none = obj.hit(r, tmin, tmax);
+            let hit_or_none = obj.hit(
+                r,
+                Interval {
+                    min: ray_t.min,
+                    max: tmax,
+                },
+            );
             let Some(hit) = hit_or_none else {
                 continue;
             };
