@@ -43,6 +43,23 @@ struct HitRecord {
     point: glm::Vec3,
     normal: glm::Vec3,
     t: f32,
+    front_face: bool,
+}
+
+impl HitRecord {
+    fn new(point: glm::Vec3, t: f32, outward_normal: glm::Vec3, r: &Ray) -> Self {
+        let front_face = outward_normal.dot(&r.direction) < 0.0;
+        Self {
+            point: point,
+            normal: if front_face {
+                outward_normal
+            } else {
+                -outward_normal
+            },
+            t: t,
+            front_face: front_face,
+        }
+    }
 }
 
 trait Hittable {
@@ -81,11 +98,7 @@ impl Hittable for Sphere {
             t = root0;
         }
         let point = r.at(t);
-        let hit = HitRecord {
-            point,
-            normal: (point - self.center).normalize(),
-            t,
-        };
+        let hit = HitRecord::new(point, t, (point - self.center).normalize(), r);
         Some(hit)
     }
 }
@@ -126,6 +139,8 @@ fn ray_color(objs: &Vec<HittableObject>, r: &Ray) -> glm::Vec3 {
     }
     glm::Vec3::new(0.5, 0.7, 1.0) * a + (1.0 - a) * glm::Vec3::new(1.0, 1.0, 1.0)
 }
+
+
 
 fn main() {
     let aspect_ratio: f32 = 16.0 / 9.0;
