@@ -35,7 +35,7 @@ fn output_file(data: Vec<u8>, width: u32, height: u32) {
 }
 
 fn main() {
-    let aspect_ratio: f32 = 16.0 / 9.0;
+    let aspect_ratio: f64 = 16.0 / 9.0;
     let image_width = 400;
     let samples_per_pixel = 100;
     println!("Hello, world!");

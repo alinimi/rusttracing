@@ -18,12 +18,12 @@ impl Hittable for HittableObject {
 }
 
 pub struct Sphere {
-    pub center: glm::Vec3,
-    pub radius: f32,
+    pub center: glm::TVec3<f64>,
+    pub radius: f64,
 }
 impl Hittable for Sphere {
     fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
-        let oc: glm::Vec3 = self.center - r.origin;
+        let oc: glm::TVec3<f64> = self.center - r.origin;
         let a = glm::length2(&r.direction);
         let h = glm::dot(&r.direction, &oc);
         let c = glm::length2(&oc) - self.radius * self.radius;
@@ -32,10 +32,10 @@ impl Hittable for Sphere {
             return None;
         }
         // let mut hitv: HitRecord = HitRecord{};
-        let root0 = (h - f32::sqrt(discriminant)) / a;
-        let root1 = (h + f32::sqrt(discriminant)) / a;
+        let root0 = (h - f64::sqrt(discriminant)) / a;
+        let root1 = (h + f64::sqrt(discriminant)) / a;
 
-        let t: f32;
+        let t: f64;
 
         if ray_t.surrounds(root0) {
             t = root0;
