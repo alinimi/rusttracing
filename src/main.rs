@@ -1,4 +1,5 @@
 extern crate nalgebra_glm as glm;
+extern crate rand;
 pub mod camera;
 pub mod geometry;
 
@@ -36,6 +37,7 @@ fn output_file(data: Vec<u8>, width: u32, height: u32) {
 fn main() {
     let aspect_ratio: f32 = 16.0 / 9.0;
     let image_width = 400;
+    let samples_per_pixel = 100;
     println!("Hello, world!");
 
     let world = HittableObject::HittableListObject(HittableList {
@@ -50,7 +52,7 @@ fn main() {
             }),
         ],
     });
-    let camera: Camera = Camera::new(aspect_ratio, image_width);
+    let camera: Camera = Camera::new(aspect_ratio, image_width, samples_per_pixel);
     let data = camera.render(&world);
     output_file(data, camera.image_width as u32, camera.image_height as u32);
 }

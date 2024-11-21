@@ -18,6 +18,16 @@ impl Interval {
     pub fn surrounds(&self, x: f32) -> bool {
         return self.min < x && x < self.max;
     }
+
+    pub fn clamp(&self, x: f32) -> f32 {
+        if x < self.min {
+            return self.min;
+        };
+        if x > self.max {
+            return self.max;
+        };
+        return x;
+    }
 }
 
 pub struct Ray {
@@ -50,6 +60,35 @@ impl HitRecord {
             },
             t: t,
             front_face: front_face,
+        }
+    }
+}
+
+pub trait Random {
+    fn make_random() -> Self;
+    fn random_on_hemisphere(normal: &glm::Vec3) -> Self;
+}
+
+impl Random for glm::Vec3 {
+    fn make_random() -> Self {
+        loop {
+            let p = glm::vec3(
+                rand::random::<f32>(),
+                rand::random::<f32>(),
+                rand::random::<f32>(),
+            );
+            let lensq: f32 = p.norm_squared();
+            if f32::EPSILON < lensq && lensq <= 1.0 {
+                return p / f32::sqrt(lensq);
+            }
+        }
+    }
+    fn random_on_hemisphere(normal: &glm::Vec3) -> Self {
+        let on_unit_sphere = Self::make_random();
+        if on_unit_sphere.dot(&normal) > 0.0 {
+            return on_unit_sphere;
+        } else {
+            return -on_unit_sphere;
         }
     }
 }
