@@ -3,11 +3,12 @@ extern crate rand;
 pub mod camera;
 pub mod geometry;
 
+use std::fs::File;
+
 use crate::camera::Camera;
 use crate::geometry::hittable::{HittableList, HittableObject, Sphere};
 
 fn output_file(data: Vec<u8>, width: u32, height: u32) {
-    use std::fs::File;
     use std::io::BufWriter;
     use std::path::Path;
 
@@ -38,7 +39,7 @@ fn main() {
     let aspect_ratio: f64 = 16.0 / 9.0;
     let image_width = 400;
     let samples_per_pixel = 100;
-    println!("Hello, world!");
+    let max_depth = 10;
 
     let world = HittableObject::HittableListObject(HittableList {
         objects: vec![
@@ -52,7 +53,10 @@ fn main() {
             }),
         ],
     });
-    let camera: Camera = Camera::new(aspect_ratio, image_width, samples_per_pixel);
+
+    let now = std::time::Instant::now();
+    let camera: Camera = Camera::new(aspect_ratio, image_width, samples_per_pixel, max_depth);
     let data = camera.render(&world);
+    println!("render time: {}", now.elapsed().as_millis());
     output_file(data, camera.image_width as u32, camera.image_height as u32);
 }

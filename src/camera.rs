@@ -7,15 +7,21 @@ pub struct Camera {
     pub image_width: i32,       // Rendered image width in pixel count
     pub image_height: i32,      // Rendered image height
     pub samples_per_pixel: i32, // Count of random samples for each pixel
-    pixel_samples_scale: f64,   // Color scale factor for a sum of pixel samples
-    center: glm::TVec3<f64>,          // Camera center
-    pixel00_loc: glm::TVec3<f64>,     // Location of pixel 0, 0
-    pixel_delta_u: glm::TVec3<f64>,   // Offset to pixel to the right
-    pixel_delta_v: glm::TVec3<f64>,   // Offset to pixel below
+    pub max_depth: i32,
+    pixel_samples_scale: f64, // Color scale factor for a sum of pixel samples
+    center: glm::TVec3<f64>,  // Camera center
+    pixel00_loc: glm::TVec3<f64>, // Location of pixel 0, 0
+    pixel_delta_u: glm::TVec3<f64>, // Offset to pixel to the right
+    pixel_delta_v: glm::TVec3<f64>, // Offset to pixel below
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: f64, image_width: i32, samples_per_pixel: i32) -> Camera {
+    pub fn new(
+        aspect_ratio: f64,
+        image_width: i32,
+        samples_per_pixel: i32,
+        max_depth: i32,
+    ) -> Camera {
         let image_height = glm::max2_scalar(1, (image_width as f64 / aspect_ratio) as i32);
 
         let viewport_height: f64 = 2.0;
@@ -37,13 +43,15 @@ impl Camera {
         // Calculate the location of the upper left pixel.
         let viewport_upper_left: glm::TVec3<f64> =
             camera_center - glm::vec3(0.0, 0.0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
-        let pixel00_loc: glm::TVec3<f64> = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+        let pixel00_loc: glm::TVec3<f64> =
+            viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
         Camera {
             aspect_ratio: aspect_ratio,
             image_width: image_width,
             image_height: (image_width as f64 / aspect_ratio) as i32,
             samples_per_pixel: samples_per_pixel,
+            max_depth: max_depth,
             pixel_samples_scale: 1.0 / samples_per_pixel as f64,
             center: camera_center,
             pixel00_loc: pixel00_loc,
@@ -72,13 +80,15 @@ impl Camera {
         );
     }
 
-    fn ray_color(&self, obj: &HittableObject, r: &Ray) -> glm::TVec3<f64> {
+    fn ray_color(&self, obj: &HittableObject, r: &Ray, depth: i32) -> glm::TVec3<f64> {
+        if depth <= 0 {
+            return glm::vec3(0.0, 0.0, 0.0);
+        }
         let unit_direction: glm::TVec3<f64> = r.direction.normalize();
-
         let closest_hit: Option<HitRecord> = obj.hit(
             r,
             Interval {
-                min: 0.0,
+                min: 0.001,
                 max: INFINITY,
             },
         );
@@ -92,6 +102,7 @@ impl Camera {
                         origin: closest_final.point,
                         direction: direction,
                     },
+                    depth - 1,
                 );
         }
         let a = 0.5 * unit_direction.y + 0.5;
@@ -107,7 +118,7 @@ impl Camera {
                 let mut pixel_color = glm::vec3(0.0, 0.0, 0.0);
                 for _ in 0..self.samples_per_pixel {
                     let ray = self.get_ray(j, i);
-                    pixel_color += self.ray_color(&world, &ray);
+                    pixel_color += self.ray_color(&world, &ray, self.max_depth);
                 }
 
                 pixel_color = self.pixel_samples_scale * pixel_color;

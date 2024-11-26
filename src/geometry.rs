@@ -73,9 +73,9 @@ impl Random for glm::TVec3<f64> {
     fn make_random() -> Self {
         loop {
             let p = glm::vec3(
-                rand::random::<f64>(),
-                rand::random::<f64>(),
-                rand::random::<f64>(),
+                rand::random::<f64>()-0.5,
+                rand::random::<f64>()-0.5,
+                rand::random::<f64>()-0.5,
             );
             let lensq: f64 = p.norm_squared();
             if f64::EPSILON < lensq && lensq <= 1.0 {
