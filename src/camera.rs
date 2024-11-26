@@ -94,7 +94,7 @@ impl Camera {
         );
 
         if let Some(closest_final) = &closest_hit {
-            let direction = glm::TVec3::<f64>::random_on_hemisphere(&closest_final.normal);
+            let direction = closest_final.normal + glm::TVec3::<f64>::random_unit_vector();
             return 0.5
                 * self.ray_color(
                     &obj,

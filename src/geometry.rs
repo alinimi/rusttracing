@@ -65,17 +65,17 @@ impl HitRecord {
 }
 
 pub trait Random {
-    fn make_random() -> Self;
+    fn random_unit_vector() -> Self;
     fn random_on_hemisphere(normal: &glm::TVec3<f64>) -> Self;
 }
 
 impl Random for glm::TVec3<f64> {
-    fn make_random() -> Self {
+    fn random_unit_vector() -> Self {
         loop {
             let p = glm::vec3(
-                rand::random::<f64>()-0.5,
-                rand::random::<f64>()-0.5,
-                rand::random::<f64>()-0.5,
+                rand::random::<f64>() - 0.5,
+                rand::random::<f64>() - 0.5,
+                rand::random::<f64>() - 0.5,
             );
             let lensq: f64 = p.norm_squared();
             if f64::EPSILON < lensq && lensq <= 1.0 {
@@ -84,7 +84,7 @@ impl Random for glm::TVec3<f64> {
         }
     }
     fn random_on_hemisphere(normal: &glm::TVec3<f64>) -> Self {
-        let on_unit_sphere = Self::make_random();
+        let on_unit_sphere = Self::random_unit_vector();
         if on_unit_sphere.dot(&normal) > 0.0 {
             return on_unit_sphere;
         } else {
