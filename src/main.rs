@@ -67,6 +67,7 @@ fn main() {
                 0.5,
                 MaterialObject::MetalObject(Metal {
                     albedo: Vec3::new(0.8, 0.8, 0.8),
+                    fuzz: 0.3,
                 }),
             )),
             HittableObject::SphereObject(Sphere::new(
@@ -74,6 +75,7 @@ fn main() {
                 0.5,
                 MaterialObject::MetalObject(Metal {
                     albedo: Vec3::new(0.8, 0.6, 0.2),
+                    fuzz: 1.0,
                 }),
             )),
         ],
