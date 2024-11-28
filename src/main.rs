@@ -6,10 +6,11 @@ pub mod material;
 
 use std::fs::File;
 
-use material::{Lambertian, MaterialObject};
-
-use crate::camera::Camera;
-use crate::geometry::hittable::{HittableList, HittableObject, Sphere};
+use crate::{
+    camera::Camera,
+    geometry::hittable::{HittableList, HittableObject, Sphere},
+    material::{Lambertian, MaterialObject, Metal},
+};
 
 type Vec3 = glm::TVec3<f64>;
 
@@ -59,6 +60,20 @@ fn main() {
                 100.0,
                 MaterialObject::LambertianObject(Lambertian {
                     albedo: Vec3::new(0.8, 0.8, 0.0),
+                }),
+            )),
+            HittableObject::SphereObject(Sphere::new(
+                Vec3::new(-1.0, 0.0, -1.0),
+                0.5,
+                MaterialObject::MetalObject(Metal {
+                    albedo: Vec3::new(0.8, 0.8, 0.8),
+                }),
+            )),
+            HittableObject::SphereObject(Sphere::new(
+                Vec3::new(1.0, 0.0, -1.0),
+                0.5,
+                MaterialObject::MetalObject(Metal {
+                    albedo: Vec3::new(0.8, 0.6, 0.2),
                 }),
             )),
         ],

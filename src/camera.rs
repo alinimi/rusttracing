@@ -112,6 +112,8 @@ impl Camera {
                     },
                     depth - 1,
                 ));
+            } else {
+                return Vec3::new(0.0, 0.0, 0.0);
             }
         }
         let a = 0.5 * unit_direction.y + 0.5;

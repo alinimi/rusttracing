@@ -74,13 +74,14 @@ impl<'a> HitRecord<'a> {
     }
 }
 
-pub trait Random {
+pub trait Vec3Utils {
     fn random_unit_vector() -> Self;
     fn random_on_hemisphere(normal: &Vec3) -> Self;
     fn near_zero(&self) -> bool;
+    fn reflect(&self, n: &Vec3) -> Self;
 }
 
-impl Random for Vec3 {
+impl Vec3Utils for Vec3 {
     fn random_unit_vector() -> Self {
         loop {
             let p = Vec3::new(
@@ -105,5 +106,8 @@ impl Random for Vec3 {
     fn near_zero(&self) -> bool {
         let s = 1e-8;
         return self.x.abs() < s && self.y.abs() < s && self.z.abs() < s;
+    }
+    fn reflect(&self, n: &Vec3) -> Self {
+        self - 2.0 * self.dot(n) * n
     }
 }
