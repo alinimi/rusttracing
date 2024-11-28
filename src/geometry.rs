@@ -1,4 +1,6 @@
 pub mod hittable;
+use crate::material::MaterialObject;
+use crate::Vec3;
 
 #[derive(Copy, Clone)]
 pub struct Interval {
@@ -31,25 +33,32 @@ impl Interval {
 }
 
 pub struct Ray {
-    pub origin: glm::TVec3<f64>,
-    pub direction: glm::TVec3<f64>,
+    pub origin: Vec3,
+    pub direction: Vec3,
 }
 
 impl Ray {
-    pub fn at(&self, t: f64) -> glm::TVec3<f64> {
+    pub fn at(&self, t: f64) -> Vec3 {
         self.origin + self.direction * t
     }
 }
 
-pub struct HitRecord {
-    pub point: glm::TVec3<f64>,
-    pub normal: glm::TVec3<f64>,
+pub struct HitRecord<'a> {
+    pub point: Vec3,
+    pub normal: Vec3,
     pub t: f64,
     pub front_face: bool,
+    pub material: &'a MaterialObject,
 }
 
-impl HitRecord {
-    fn new(point: glm::TVec3<f64>, t: f64, outward_normal: glm::TVec3<f64>, r: &Ray) -> Self {
+impl<'a> HitRecord<'a> {
+    fn new(
+        point: Vec3,
+        t: f64,
+        outward_normal: Vec3,
+        r: &Ray,
+        material: &'a MaterialObject,
+    ) -> Self {
         let front_face = outward_normal.dot(&r.direction) < 0.0;
         Self {
             point: point,
@@ -60,19 +69,21 @@ impl HitRecord {
             },
             t: t,
             front_face: front_face,
+            material: material,
         }
     }
 }
 
 pub trait Random {
     fn random_unit_vector() -> Self;
-    fn random_on_hemisphere(normal: &glm::TVec3<f64>) -> Self;
+    fn random_on_hemisphere(normal: &Vec3) -> Self;
+    fn near_zero(&self) -> bool;
 }
 
-impl Random for glm::TVec3<f64> {
+impl Random for Vec3 {
     fn random_unit_vector() -> Self {
         loop {
-            let p = glm::vec3(
+            let p = Vec3::new(
                 rand::random::<f64>() - 0.5,
                 rand::random::<f64>() - 0.5,
                 rand::random::<f64>() - 0.5,
@@ -83,12 +94,16 @@ impl Random for glm::TVec3<f64> {
             }
         }
     }
-    fn random_on_hemisphere(normal: &glm::TVec3<f64>) -> Self {
+    fn random_on_hemisphere(normal: &Vec3) -> Self {
         let on_unit_sphere = Self::random_unit_vector();
         if on_unit_sphere.dot(&normal) > 0.0 {
             return on_unit_sphere;
         } else {
             return -on_unit_sphere;
         }
+    }
+    fn near_zero(&self) -> bool {
+        let s = 1e-8;
+        return self.x.abs() < s && self.y.abs() < s && self.z.abs() < s;
     }
 }

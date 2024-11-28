@@ -1,15 +1,19 @@
-use crate::geometry::{HitRecord, Interval, Ray};
+use crate::{
+    geometry::{HitRecord, Interval, Ray},
+    material::MaterialObject,
+    Vec3,
+};
 
-pub trait Hittable {
-    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord>;
+pub trait Hittable<'a> {
+    fn hit(&'a self, r: &Ray, ray_t: Interval) -> Option<HitRecord<'a>>;
 }
 
 pub enum HittableObject {
     SphereObject(Sphere),
     HittableListObject(HittableList),
 }
-impl Hittable for HittableObject {
-    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
+impl<'a> Hittable<'a> for HittableObject {
+    fn hit(&'a self, r: &Ray, ray_t: Interval) -> Option<HitRecord<'a>> {
         match self {
             Self::SphereObject(sphere) => sphere.hit(r, ray_t),
             Self::HittableListObject(hittable_list) => hittable_list.hit(r, ray_t),
@@ -18,12 +22,23 @@ impl Hittable for HittableObject {
 }
 
 pub struct Sphere {
-    pub center: glm::TVec3<f64>,
+    pub center: Vec3,
     pub radius: f64,
+    material: MaterialObject,
 }
-impl Hittable for Sphere {
-    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
-        let oc: glm::TVec3<f64> = self.center - r.origin;
+
+impl Sphere {
+    pub fn new(center: Vec3, radius: f64, material: MaterialObject) -> Sphere {
+        Sphere {
+            center: center,
+            radius: radius,
+            material: material,
+        }
+    }
+}
+impl<'a> Hittable<'a> for Sphere {
+    fn hit(&'a self, r: &Ray, ray_t: Interval) -> Option<HitRecord<'a>> {
+        let oc: Vec3 = self.center - r.origin;
         let a = glm::length2(&r.direction);
         let h = glm::dot(&r.direction, &oc);
         let c = glm::length2(&oc) - self.radius * self.radius;
@@ -46,7 +61,13 @@ impl Hittable for Sphere {
         }
 
         let point = r.at(t);
-        let hit = HitRecord::new(point, t, (point - self.center).normalize(), r);
+        let hit = HitRecord::new(
+            point,
+            t,
+            (point - self.center).normalize(),
+            r,
+            &self.material,
+        );
         Some(hit)
     }
 }
@@ -59,8 +80,8 @@ impl HittableList {
         self.objects.push(obj);
     }
 }
-impl Hittable for HittableList {
-    fn hit(&self, r: &Ray, ray_t: Interval) -> Option<HitRecord> {
+impl<'a> Hittable<'a> for HittableList {
+    fn hit(&'a self, r: &Ray, ray_t: Interval) -> Option<HitRecord<'a>> {
         let mut closest_hit: Option<HitRecord> = None;
         let mut tmax = ray_t.max;
 

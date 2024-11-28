@@ -2,11 +2,16 @@ extern crate nalgebra_glm as glm;
 extern crate rand;
 pub mod camera;
 pub mod geometry;
+pub mod material;
 
 use std::fs::File;
 
+use material::{Lambertian, MaterialObject};
+
 use crate::camera::Camera;
 use crate::geometry::hittable::{HittableList, HittableObject, Sphere};
+
+type Vec3 = glm::TVec3<f64>;
 
 fn output_file(data: Vec<u8>, width: u32, height: u32) {
     use std::io::BufWriter;
@@ -42,14 +47,20 @@ fn main() {
 
     let world = HittableObject::HittableListObject(HittableList {
         objects: vec![
-            HittableObject::SphereObject(Sphere {
-                center: glm::vec3(-0.0, 0.0, -1.0),
-                radius: 0.5,
-            }),
-            HittableObject::SphereObject(Sphere {
-                center: glm::vec3(0.0, -100.5, -1.0),
-                radius: 100.0,
-            }),
+            HittableObject::SphereObject(Sphere::new(
+                Vec3::new(-0.0, 0.0, -1.0),
+                0.5,
+                MaterialObject::LambertianObject(Lambertian {
+                    albedo: Vec3::new(0.1, 0.2, 0.5),
+                }),
+            )),
+            HittableObject::SphereObject(Sphere::new(
+                Vec3::new(0.0, -100.5, -1.0),
+                100.0,
+                MaterialObject::LambertianObject(Lambertian {
+                    albedo: Vec3::new(0.8, 0.8, 0.0),
+                }),
+            )),
         ],
     });
 

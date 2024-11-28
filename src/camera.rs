@@ -1,5 +1,11 @@
-use crate::geometry::hittable::{Hittable, HittableObject};
-use crate::geometry::{HitRecord, Interval, Random, Ray};
+use crate::{
+    geometry::{
+        hittable::{Hittable, HittableObject},
+        HitRecord, Interval, Ray,
+    },
+    material::Material,
+    Vec3,
+};
 use core::f64::INFINITY;
 
 pub struct Camera {
@@ -9,10 +15,10 @@ pub struct Camera {
     pub samples_per_pixel: i32, // Count of random samples for each pixel
     pub max_depth: i32,
     pixel_samples_scale: f64, // Color scale factor for a sum of pixel samples
-    center: glm::TVec3<f64>,  // Camera center
-    pixel00_loc: glm::TVec3<f64>, // Location of pixel 0, 0
-    pixel_delta_u: glm::TVec3<f64>, // Offset to pixel to the right
-    pixel_delta_v: glm::TVec3<f64>, // Offset to pixel below
+    center: Vec3,             // Camera center
+    pixel00_loc: Vec3,        // Location of pixel 0, 0
+    pixel_delta_u: Vec3,      // Offset to pixel to the right
+    pixel_delta_v: Vec3,      // Offset to pixel below
 }
 
 impl Camera {
@@ -30,21 +36,20 @@ impl Camera {
         // Camera
 
         let focal_length: f64 = 1.0;
-        let camera_center: glm::TVec3<f64> = glm::vec3(0.0, 0.0, 0.0);
+        let camera_center: Vec3 = Vec3::new(0.0, 0.0, 0.0);
 
         // Calculate the vectors across the horizontal and down the vertical viewport edges.
-        let viewport_u: glm::TVec3<f64> = glm::vec3(viewport_width, 0.0, 0.0);
-        let viewport_v: glm::TVec3<f64> = glm::vec3(0.0, -viewport_height, 0.0);
+        let viewport_u: Vec3 = Vec3::new(viewport_width, 0.0, 0.0);
+        let viewport_v: Vec3 = Vec3::new(0.0, -viewport_height, 0.0);
 
         // Calculate the horizontal and vertical delta vectors from pixel to pixel.
-        let pixel_delta_u: glm::TVec3<f64> = viewport_u / image_width as f64;
-        let pixel_delta_v: glm::TVec3<f64> = viewport_v / image_height as f64;
+        let pixel_delta_u: Vec3 = viewport_u / image_width as f64;
+        let pixel_delta_v: Vec3 = viewport_v / image_height as f64;
 
         // Calculate the location of the upper left pixel.
-        let viewport_upper_left: glm::TVec3<f64> =
-            camera_center - glm::vec3(0.0, 0.0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
-        let pixel00_loc: glm::TVec3<f64> =
-            viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+        let viewport_upper_left: Vec3 =
+            camera_center - Vec3::new(0.0, 0.0, focal_length) - viewport_u / 2.0 - viewport_v / 2.0;
+        let pixel00_loc: Vec3 = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
         Camera {
             aspect_ratio: aspect_ratio,
@@ -72,21 +77,21 @@ impl Camera {
         }
     }
 
-    fn sample_square(&self) -> glm::TVec3<f64> {
-        return glm::vec3(
+    fn sample_square(&self) -> Vec3 {
+        return Vec3::new(
             rand::random::<f64>() - 0.5,
             rand::random::<f64>() - 0.5,
             0.0,
         );
     }
 
-    fn ray_color(&self, obj: &HittableObject, r: &Ray, depth: i32) -> glm::TVec3<f64> {
+    fn ray_color(&self, obj: &HittableObject, r_in: &Ray, depth: i32) -> Vec3 {
         if depth <= 0 {
-            return glm::vec3(0.0, 0.0, 0.0);
+            return Vec3::new(0.0, 0.0, 0.0);
         }
-        let unit_direction: glm::TVec3<f64> = r.direction.normalize();
+        let unit_direction: Vec3 = r_in.direction.normalize();
         let closest_hit: Option<HitRecord> = obj.hit(
-            r,
+            r_in,
             Interval {
                 min: 0.001,
                 max: INFINITY,
@@ -94,16 +99,20 @@ impl Camera {
         );
 
         if let Some(closest_final) = &closest_hit {
-            let direction = closest_final.normal + glm::TVec3::<f64>::random_unit_vector();
-            return 0.5
-                * self.ray_color(
+            let mut attenuation = Vec3::new(0.0, 0.0, 0.0);
+            let r_out = closest_final
+                .material
+                .scatter(r_in, closest_final, &mut attenuation);
+            if let Some(r_out_final) = &r_out {
+                return attenuation.component_mul(&self.ray_color(
                     &obj,
                     &Ray {
                         origin: closest_final.point,
-                        direction: direction,
+                        direction: r_out_final.direction,
                     },
                     depth - 1,
-                );
+                ));
+            }
         }
         let a = 0.5 * unit_direction.y + 0.5;
         glm::TVec3::<f64>::new(0.5, 0.7, 1.0) * a
@@ -115,7 +124,7 @@ impl Camera {
 
         for i in 0..self.image_height {
             for j in 0..self.image_width {
-                let mut pixel_color = glm::vec3(0.0, 0.0, 0.0);
+                let mut pixel_color = Vec3::new(0.0, 0.0, 0.0);
                 for _ in 0..self.samples_per_pixel {
                     let ray = self.get_ray(j, i);
                     pixel_color += self.ray_color(&world, &ray, self.max_depth);
