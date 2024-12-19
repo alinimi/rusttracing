@@ -1,3 +1,5 @@
+use rand::Rng;
+
 use crate::{
     geometry::{
         hittable::{Hittable, HittableObject},
@@ -81,6 +83,21 @@ impl Camera {
         return Vec3::new(
             rand::random::<f64>() - 0.5,
             rand::random::<f64>() - 0.5,
+            0.0,
+        );
+    }
+
+
+    pub fn sample_square_jitter(&self, boxes: Option<i32>) -> Vec3 {
+        let box_num = match boxes {
+            Some(i) => i,
+            None => 5,
+        };
+        let i_box = rand::thread_rng().gen_range(0..box_num ^ 2);
+        let step = 1.0 / box_num as f64;
+        return Vec3::new(
+            rand::random::<f64>() / box_num as f64 + (i_box / box_num) as f64 * step - 0.5,
+            rand::random::<f64>() / box_num as f64 + (i_box % box_num) as f64 * step - 0.5,
             0.0,
         );
     }
